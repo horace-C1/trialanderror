@@ -174,49 +174,61 @@
 
     if(page === "daily") {
       const dailyDiv = pages.daily;
-        dailyDiv.innerHTML = "<h2>📅 Daily Tasks</h2>";
-        const tasks = await db.tasks.toArray();
-        const todayNum = parseInt(new Date().toISOString().slice(5,7) + new Date().toISOString().slice(8,10));
+      dailyDiv.innerHTML = "<h2>📅 Daily Tasks</h2>";
+      const tasks = await db.tasks.toArray();
+      const todayNum = parseInt(new Date().toISOString().slice(5,7) + new Date().toISOString().slice(8,10));
 
-        let anyVisible = false;
+      let anyVisible = false;
 
-        tasks.forEach(t => {
-          t.subtasks?.forEach((s, si) => {
+      tasks.forEach(t => {
+        // Filter visible subtasks
+        const visibleSubs = t.subtasks?.filter(s => {
+          const subNum = parseInt(s.date_code);
+          const status = s.status;
+          return subNum <= todayNum && !(status === "Completed" && subNum < todayNum);
+        }) || [];
+
+        if(visibleSubs.length > 0) {
+          anyVisible = true;
+
+          // Show parent task and project
+          const header = document.createElement("h3");
+          header.innerText = `🔹 ${t.task}, ${t.project}`;
+          dailyDiv.appendChild(header);
+
+          // Render each subtask under the parent
+          visibleSubs.forEach((s, si) => {
             const subNum = parseInt(s.date_code);
             const status = s.status;
 
-            // Show if due today or overdue AND not completed before today
-            if(subNum <= todayNum && !(status === "Completed" && subNum < todayNum)) {
-              anyVisible = true;
-              const taskDiv = document.createElement("div");
-              taskDiv.className = "subtask-container";
+            const subDiv = document.createElement("div");
+            subDiv.className = "subtask-container";
 
-              let subHTML = `${subNum}: ${s.title} [${status}]`;
-              const subElem = document.createElement("p");
-              subElem.innerHTML = subHTML;
-              if(status === "Completed") subElem.classList.add("completed");
-              else if(subNum < todayNum) subElem.classList.add("overdue");
+            const subElem = document.createElement("p");
+            subElem.innerText = `${subNum}: ${s.title} [${status}]`;
+            if(status === "Completed") subElem.classList.add("completed");
+            else if(subNum < todayNum) subElem.classList.add("overdue");
+            subDiv.appendChild(subElem);
 
-              taskDiv.appendChild(subElem);
-
-              if(status !== "Completed") {
-                const btn = document.createElement("button");
-                btn.innerText = "✅";
-                btn.onclick = async () => {
-                  s.status = "Completed";
-                  await db.tasks.put(t);
-                  navigate("daily"); // rerender daily page
-                };
-                taskDiv.appendChild(btn);
-              }
-
-              dailyDiv.appendChild(taskDiv);
+            if(status !== "Completed") {
+              const btn = document.createElement("button");
+              btn.innerText = "✅";
+              btn.onclick = async () => {
+                s.status = "Completed";
+                await db.tasks.put(t);
+                navigate("daily"); // rerender daily page
+              };
+              subDiv.appendChild(btn);
             }
+
+            dailyDiv.appendChild(subDiv);
           });
-        });
+        }
+      });
 
       if(!anyVisible) dailyDiv.innerHTML += "<p>No subtasks due today or earlier.</p>";
     }
+
 
     if(page==="projects") {
       const projDiv = pages.projects;
