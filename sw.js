@@ -1,5 +1,5 @@
 // Change this version number whenever you update files
-const CACHE_VERSION = 'v2'; // Change from 'v1' to 'v2', etc.
+const CACHE_VERSION = 'v3'; // Change from 'v1' to 'v2', etc.
 const CACHE_NAME = `my-app-${CACHE_VERSION}`;
 
 // Install event - cache your files
@@ -34,3 +34,4 @@ self.addEventListener('activate', (event) => {
   // Take control of all pages immediately
   return self.clients.claim();
 });
+
