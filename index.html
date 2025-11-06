@@ -109,7 +109,7 @@
   async function renderPage(page) {
     if (page === "dashboard") {
       const dash = pages.dashboard;
-      dash.innerHTML = "<h2>📊 Dashboard</h2>";
+      dash.innerHTML = "<h2>📊 Dashboard1106</h2>";
       const tasks = await db.tasks.toArray();
       const totalProjects = new Set(tasks.map(t => t.project)).size;
       const totalTasks = tasks.length;
@@ -221,3 +221,4 @@
 </script>
 </body>
 </html>
+
