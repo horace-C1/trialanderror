@@ -1,0 +1,15 @@
+{
+  "name": "Protocol Tracker PWA",
+  "short_name": "TrackerPWA",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#317EFB",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/992/992651.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
