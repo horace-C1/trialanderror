@@ -1,5 +1,5 @@
 // ================= Service Worker =================
-const CACHE_NAME = 'protocol-tracker-cache-v2'; // increment this when you update files
+const CACHE_NAME = 'protocol-tracker-cache-v3'; // increment this when you update files
 const FILES_TO_CACHE = [
   '/',
   '/index.html',
@@ -44,3 +44,4 @@ self.addEventListener('message', (event) => {
     self.skipWaiting();
   }
 });
+
