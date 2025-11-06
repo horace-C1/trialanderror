@@ -1,197 +1,223 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Protocol Tracker PWA</title>
-<link rel="manifest" href="manifest.json">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Protocol Tracker PWA</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#317EFB">
+  <script src="https://cdn.jsdelivr.net/npm/dexie@4.0.8/dist/dexie.min.js"></script>
+  <style>
+    body { font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 1rem; padding-bottom: 80px; }
+    input, textarea, select, button { width: 100%; margin: 5px 0; padding: 8px; font-size: 1rem; }
+    h2 { margin-top: 1rem; }
+    .task { border: 1px solid #ddd; padding: 10px; margin-bottom: 10px; border-radius: 6px; }
+    .subtask { margin-left: 15px; }
+    .completed { color: gray; text-decoration: line-through; }
+    .overdue { color: red; }
 
-<style>
-/* ===== Body & Pages ===== */
-body {
-    margin: 0;
-    font-family: sans-serif;
-    padding-bottom: 80px; /* space for bottom nav */
-    background: #f9f9f9;
-}
-
-.page {
-    display: none;
-    padding: 20px;
-    box-sizing: border-box;
-    min-height: calc(100vh - 80px); /* full screen minus nav */
-}
-
-/* ===== Bottom Navigation ===== */
-#bottom-nav {
-    position: fixed;
-    bottom: 0;
-    width: 100%;
-    display: flex;
-    justify-content: space-around;
-    background: #ffffff;
-    padding: 10px 0;
-    border-top: 1px solid #ccc;
-    box-sizing: border-box;
-    z-index: 999;
-}
-
-#bottom-nav button {
-    font-size: 26px;
-    flex: 1;
-    border: none;
-    background: none;
-    padding: 10px 0;
-}
-
-#bottom-nav button.active {
-    background-color: #0d6efd;
-    color: #fff;
-    border-radius: 8px;
-}
-
-/* ===== Mobile adjustments ===== */
-@media (orientation: landscape) {
-    body { padding-bottom: 60px; }
-    #bottom-nav button { font-size: 22px; }
-}
-</style>
+    /* Bottom navigation */
+    #bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #fff;
+      display: flex;
+      justify-content: space-around;
+      border-top: 1px solid #ccc;
+      padding: 10px 0;
+      z-index: 999;
+    }
+    #bottom-nav button {
+      font-size: 24px;
+      border: none;
+      background: none;
+      flex: 1;
+      text-align: center;
+      cursor: pointer;
+    }
+    #bottom-nav button.active {
+      background-color: #0d6efd;
+      color: white;
+      border-radius: 6px;
+    }
+    .page { display: none; }
+  </style>
 </head>
 <body>
 
-<!-- ===== Pages ===== -->
-<div id="dashboard" class="page" style="display: block;">
-    <h2>🏠 Dashboard</h2>
-    <div id="dashboard-content"></div>
-</div>
+<h1>📊 Protocol Tracker PWA</h1>
 
-<div id="create" class="page">
-    <h2>➕ Create Task</h2>
-    <input type="text" id="project" placeholder="Project Name"><br><br>
-    <input type="text" id="task" placeholder="Task"><br><br>
-    <textarea id="description" placeholder="Task Description / Steps"></textarea><br><br>
-    <button onclick="saveTask()">Save Task</button>
-    <div id="create-msg"></div>
-</div>
+<!-- Pages -->
+<div id="dashboardPage" class="page"></div>
+<div id="createPage" class="page"></div>
+<div id="tasksPage" class="page"></div>
+<div id="dailyPage" class="page"></div>
+<div id="projectsPage" class="page"></div>
 
-<div id="current" class="page">
-    <h2>📋 Current Tasks</h2>
-    <div id="current-tasks"></div>
-</div>
-
-<div id="daily" class="page">
-    <h2>📅 Today's Tasks</h2>
-    <div id="daily-tasks"></div>
-</div>
-
-<div id="overview" class="page">
-    <h2>📂 Project Overview</h2>
-    <div id="project-overview"></div>
-</div>
-
-<!-- ===== Bottom Navigation ===== -->
+<!-- Bottom Navigation -->
 <div id="bottom-nav">
-    <button id="nav-dash" onclick="navigate('dashboard')">🏠</button>
-    <button id="nav-create" onclick="navigate('create')">➕</button>
-    <button id="nav-current" onclick="navigate('current')">📋</button>
-    <button id="nav-daily" onclick="navigate('daily')">📅</button>
-    <button id="nav-overview" onclick="navigate('overview')">📂</button>
+  <button id="nav-dashboard" onclick="navigate('dashboard')">🏠</button>
+  <button id="nav-create" onclick="navigate('create')">➕</button>
+  <button id="nav-tasks" onclick="navigate('tasks')">📋</button>
+  <button id="nav-daily" onclick="navigate('daily')">📅</button>
+  <button id="nav-projects" onclick="navigate('projects')">📂</button>
 </div>
 
-<!-- ===== Scripts ===== -->
-<script src="https://cdn.jsdelivr.net/npm/dexie@3.2.2/dist/dexie.min.js"></script>
 <script>
-// ===== IndexedDB setup =====
-const db = new Dexie("TasksDB");
-db.version(1).stores({ tasks: "++id, project, task, description, status, created_at" });
+  // ================= Dexie DB Setup =================
+  const db = new Dexie("protocolTrackerDB");
+  db.version(1).stores({
+    tasks: "++id, project, task, description, status, created_at"
+  });
 
-// ===== Navigation =====
-function navigate(page) {
-    // Hide all pages
-    document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
-    // Show selected page
-    document.getElementById(page).style.display = 'block';
+  const pages = {
+    dashboard: document.getElementById("dashboardPage"),
+    create: document.getElementById("createPage"),
+    tasks: document.getElementById("tasksPage"),
+    daily: document.getElementById("dailyPage"),
+    projects: document.getElementById("projectsPage")
+  };
 
-    // Highlight active button
-    document.querySelectorAll('#bottom-nav button').forEach(btn => btn.classList.remove('active'));
-    document.getElementById("nav-" + page.split('-')[0]).classList.add('active');
+  // ================= Navigation =================
+  function navigate(page) {
+    // hide all pages
+    Object.values(pages).forEach(p => p.style.display = 'none');
+    // show selected page
+    pages[page].style.display = 'block';
+    // highlight active button
+    document.querySelectorAll('#bottom-nav button').forEach(b => b.classList.remove('active'));
+    document.getElementById("nav-" + page).classList.add('active');
+    // render page content
+    renderPage(page);
+  }
 
-    renderPages();
-}
+  // ================= Helper: Extract subtasks =================
+  function extractSubtasks(description) {
+    const pattern = /(\d{4}):\s*(.+)/g;
+    let match, subtasks = [];
+    while ((match = pattern.exec(description)) !== null) {
+      let code = match[1];
+      let text = match[2];
+      subtasks.push({date_code: code, title: text, status: "Not Started"});
+    }
+    return subtasks;
+  }
 
-// ===== Save Task =====
-async function saveTask() {
-    const project = document.getElementById("project").value.trim();
-    const task = document.getElementById("task").value.trim();
-    const description = document.getElementById("description").value.trim();
-
-    if (!project || !task) {
-        alert("Project and Task are required!");
-        return;
+  // ================= Pages =================
+  async function renderPage(page) {
+    if (page === "dashboard") {
+      const dash = pages.dashboard;
+      dash.innerHTML = "<h2>📊 Dashboard</h2>";
+      const tasks = await db.tasks.toArray();
+      const totalProjects = new Set(tasks.map(t => t.project)).size;
+      const totalTasks = tasks.length;
+      let todayNum = parseInt(new Date().toISOString().slice(5,7)+new Date().toISOString().slice(8,10));
+      let overdue = 0, today = 0;
+      tasks.forEach(t => {
+        t.subtasks?.forEach(s => {
+          let num = parseInt(s.date_code);
+          if(s.status !== "Completed") {
+            if(num < todayNum) overdue++;
+            else if(num === todayNum) today++;
+          }
+        });
+      });
+      dash.innerHTML += `<p>🧪 Total Projects: ${totalProjects}</p>`;
+      dash.innerHTML += `<p>📂 Total Tasks: ${totalTasks}</p>`;
+      dash.innerHTML += `<p>⚠️ Overdue Subtasks: ${overdue}</p>`;
+      dash.innerHTML += `<p>📅 Today's Subtasks: ${today}</p>`;
     }
 
-    const created_at = new Date().toISOString();
-    await db.tasks.add({ project, task, description, status: "Not Started", created_at });
-
-    document.getElementById("create-msg").innerText = `Task "${task}" saved!`;
-    document.getElementById("project").value = "";
-    document.getElementById("task").value = "";
-    document.getElementById("description").value = "";
-
-    renderPages();
-}
-
-// ===== Render pages =====
-async function renderPages() {
-    const allTasks = await db.tasks.toArray();
-
-    // Dashboard
-    const dashboardDiv = document.getElementById("dashboard-content");
-    dashboardDiv.innerHTML = `<p>Total Tasks: ${allTasks.length}</p>`;
-
-    // Current Tasks
-    const currentDiv = document.getElementById("current-tasks");
-    currentDiv.innerHTML = "";
-    allTasks.forEach(t => {
-        const div = document.createElement("div");
-        div.innerHTML = `<b>${t.project} - ${t.task}</b> [${t.status}] <button onclick="markCompleted(${t.id})">✅</button>`;
-        currentDiv.appendChild(div);
-    });
-
-    // Daily Tasks (simplified example)
-    const dailyDiv = document.getElementById("daily-tasks");
-    dailyDiv.innerHTML = "";
-    allTasks.forEach(t => {
-        const div = document.createElement("div");
-        div.innerHTML = `<b>${t.project} - ${t.task}</b> [${t.status}]`;
-        dailyDiv.appendChild(div);
-    });
-
-    // Project Overview
-    const overviewDiv = document.getElementById("project-overview");
-    overviewDiv.innerHTML = "";
-    const projects = {};
-    allTasks.forEach(t => { projects[t.project] = projects[t.project] || []; projects[t.project].push(t); });
-    for (const p in projects) {
-        const div = document.createElement("div");
-        div.innerHTML = `<h4>${p}</h4>` + projects[p].map(t => `${t.task} [${t.status}]`).join("<br>");
-        overviewDiv.appendChild(div);
+    if(page === "create") {
+      const create = pages.create;
+      create.innerHTML = `<h2>➕ Create Task</h2>
+      <input id="projInput" placeholder="Project Name">
+      <input id="taskInput" placeholder="Task Name">
+      <textarea id="descInput" placeholder="Task Description (use 0101: Subtask format)"></textarea>
+      <select id="statusInput">
+        <option>Not Started</option>
+        <option>In Progress</option>
+        <option>Completed</option>
+      </select>
+      <button id="saveBtn">Save Task</button>
+      <p id="msg"></p>`;
+      document.getElementById("saveBtn").onclick = async () => {
+        const project = document.getElementById("projInput").value.trim();
+        const task = document.getElementById("taskInput").value.trim();
+        const description = document.getElementById("descInput").value.trim();
+        const status = document.getElementById("statusInput").value;
+        if(!project || !task) { document.getElementById("msg").innerText="Fill project & task!"; return; }
+        const subtasks = extractSubtasks(description);
+        await db.tasks.add({ project, task, description, status, subtasks, created_at: new Date().toISOString() });
+        document.getElementById("msg").innerText = "✅ Task Saved!";
+        document.getElementById("projInput").value="";
+        document.getElementById("taskInput").value="";
+        document.getElementById("descInput").value="";
+      };
     }
-}
 
-// ===== Mark completed =====
-async function markCompleted(id) {
-    await db.tasks.update(id, { status: "Completed" });
-    renderPages();
-}
+    if(page === "tasks") {
+      const tasksDiv = pages.tasks;
+      tasksDiv.innerHTML = "<h2>📋 Current Tasks</h2>";
+      const tasks = await db.tasks.reverse().toArray();
+      tasksDiv.innerHTML += tasks.map((t, idx) => {
+        let subHTML = t.subtasks?.map((s, si) => `<div class="subtask ${s.status==='Completed'?'completed':''}">${s.date_code}: ${s.title} [${s.status}] <button onclick="completeSub(${t.id},${si})">✅</button></div>`).join('') || '';
+        return `<div class="task"><h3>${t.task} (${t.project})</h3>
+                <p>Status: ${t.status}</p>
+                <p>${t.description}</p>
+                ${subHTML}
+                <button onclick="deleteTask(${t.id})">🗑️ Delete Task</button></div>`;
+      }).join('');
+    }
 
-// ===== Service Worker =====
-if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js').then(() => console.log("SW registered"));
-}
+    if(page === "daily") {
+      const dailyDiv = pages.daily;
+      dailyDiv.innerHTML="<h2>📅 Daily Tasks</h2>";
+      const tasks = await db.tasks.toArray();
+      const todayNum = parseInt(new Date().toISOString().slice(5,7)+new Date().toISOString().slice(8,10));
+      tasks.forEach(t => {
+        t.subtasks?.forEach((s, si) => {
+          const subNum = parseInt(s.date_code);
+          if(subNum<=todayNum && s.status!=="Completed") {
+            dailyDiv.innerHTML += `<p>${t.task} - ${s.title} <button onclick="completeSub(${t.id},${si})">✅ Complete</button></p>`;
+          }
+        });
+      });
+    }
 
-// Initial render
-renderPages();
+    if(page==="projects") {
+      const projDiv = pages.projects;
+      projDiv.innerHTML="<h2>📂 Project Overview</h2>";
+      const tasks = await db.tasks.toArray();
+      const projects = {};
+      tasks.forEach(t => { projects[t.project] = projects[t.project]||[]; projects[t.project].push(t); });
+      for(const [proj, tlist] of Object.entries(projects)) {
+        projDiv.innerHTML += `<h3>${proj}</h3>`;
+        tlist.forEach(t => {
+          let subHTML = t.subtasks?.map(s=>`<p class="${s.status==='Completed'?'completed':''}">${s.date_code}: ${s.title} [${s.status}]</p>`).join('')||'_No subtasks_';
+          projDiv.innerHTML += `<div class="task"><strong>${t.task}</strong>${subHTML}</div>`;
+        });
+      }
+    }
+  }
+
+  // ================= CRUD functions =================
+  window.deleteTask = async (id) => { await db.tasks.delete(id); renderPage(currentPage); };
+  window.completeSub = async (taskId, subIdx) => {
+    const task = await db.tasks.get(taskId);
+    task.subtasks[subIdx].status = "Completed";
+    await db.tasks.put(task);
+    renderPage(currentPage);
+  };
+
+  // ================= Service Worker =================
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+
+  // ================= Initial Render =================
+  let currentPage = "dashboard";
+  navigate(currentPage);
 </script>
 </body>
 </html>
