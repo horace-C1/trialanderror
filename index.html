@@ -47,7 +47,7 @@
 </head>
 <body>
 
-<h1>📊 Protocol Tracker 11066</h1>
+<h1>📊 Protocol Tracker PWA-1106</h1>
 
 <!-- Pages -->
 <div id="dashboardPage" class="page"></div>
@@ -67,7 +67,6 @@
 
 <script>
   // ================= Dexie DB Setup =================
-  // Keep the DB name the same across versions
   const db = new Dexie("protocolTrackerDB");
   db.version(1).stores({
     tasks: "++id, project, task, description, status, created_at"
@@ -82,13 +81,15 @@
   };
 
   // ================= Navigation =================
-  let currentPage = "dashboard";
   function navigate(page) {
+    // hide all pages
     Object.values(pages).forEach(p => p.style.display = 'none');
+    // show selected page
     pages[page].style.display = 'block';
+    // highlight active button
     document.querySelectorAll('#bottom-nav button').forEach(b => b.classList.remove('active'));
     document.getElementById("nav-" + page).classList.add('active');
-    currentPage = page;
+    // render page content
     renderPage(page);
   }
 
@@ -97,41 +98,49 @@
     const pattern = /(\d{4}):\s*(.+)/g;
     let match, subtasks = [];
     while ((match = pattern.exec(description)) !== null) {
-      subtasks.push({date_code: match[1], title: match[2], status: "Not Started"});
+      let code = match[1];
+      let text = match[2];
+      subtasks.push({date_code: code, title: text, status: "Not Started"});
     }
     return subtasks;
   }
 
   // ================= Pages =================
   async function renderPage(page) {
-    if(page==="dashboard") {
+    if (page === "dashboard") {
       const dash = pages.dashboard;
       dash.innerHTML = "<h2>📊 Dashboard</h2>";
       const tasks = await db.tasks.toArray();
       const totalProjects = new Set(tasks.map(t => t.project)).size;
       const totalTasks = tasks.length;
-      const todayNum = parseInt(new Date().toISOString().slice(5,7)+new Date().toISOString().slice(8,10));
+      let todayNum = parseInt(new Date().toISOString().slice(5,7)+new Date().toISOString().slice(8,10));
       let overdue = 0, today = 0;
-      tasks.forEach(t => t.subtasks?.forEach(s => {
-        const num = parseInt(s.date_code);
-        if(s.status !== "Completed"){
-          if(num < todayNum) overdue++;
-          else if(num === todayNum) today++;
-        }
-      }));
+      tasks.forEach(t => {
+        t.subtasks?.forEach(s => {
+          let num = parseInt(s.date_code);
+          if(s.status !== "Completed") {
+            if(num < todayNum) overdue++;
+            else if(num === todayNum) today++;
+          }
+        });
+      });
       dash.innerHTML += `<p>🧪 Total Projects: ${totalProjects}</p>`;
       dash.innerHTML += `<p>📂 Total Tasks: ${totalTasks}</p>`;
       dash.innerHTML += `<p>⚠️ Overdue Subtasks: ${overdue}</p>`;
       dash.innerHTML += `<p>📅 Today's Subtasks: ${today}</p>`;
     }
 
-    if(page==="create") {
+    if(page === "create") {
       const create = pages.create;
       create.innerHTML = `<h2>➕ Create Task</h2>
       <input id="projInput" placeholder="Project Name">
       <input id="taskInput" placeholder="Task Name">
       <textarea id="descInput" placeholder="Task Description (use 0101: Subtask format)"></textarea>
-      <select id="statusInput"><option>Not Started</option><option>In Progress</option><option>Completed</option></select>
+      <select id="statusInput">
+        <option>Not Started</option>
+        <option>In Progress</option>
+        <option>Completed</option>
+      </select>
       <button id="saveBtn">Save Task</button>
       <p id="msg"></p>`;
       document.getElementById("saveBtn").onclick = async () => {
@@ -139,9 +148,9 @@
         const task = document.getElementById("taskInput").value.trim();
         const description = document.getElementById("descInput").value.trim();
         const status = document.getElementById("statusInput").value;
-        if(!project || !task){ document.getElementById("msg").innerText="Fill project & task!"; return; }
+        if(!project || !task) { document.getElementById("msg").innerText="Fill project & task!"; return; }
         const subtasks = extractSubtasks(description);
-        await db.tasks.add({project, task, description, status, subtasks, created_at: new Date().toISOString()});
+        await db.tasks.add({ project, task, description, status, subtasks, created_at: new Date().toISOString() });
         document.getElementById("msg").innerText = "✅ Task Saved!";
         document.getElementById("projInput").value="";
         document.getElementById("taskInput").value="";
@@ -149,12 +158,12 @@
       };
     }
 
-    if(page==="tasks") {
+    if(page === "tasks") {
       const tasksDiv = pages.tasks;
       tasksDiv.innerHTML = "<h2>📋 Current Tasks</h2>";
       const tasks = await db.tasks.reverse().toArray();
-      tasksDiv.innerHTML += tasks.map((t) => {
-        let subHTML = t.subtasks?.map((s, si) => `<div class="subtask ${s.status==='Completed'?'completed':''}">${s.date_code}: ${s.title} [${s.status}] <button onclick="completeSub(${t.id},${si})">✅</button></div>`).join('')||'';
+      tasksDiv.innerHTML += tasks.map((t, idx) => {
+        let subHTML = t.subtasks?.map((s, si) => `<div class="subtask ${s.status==='Completed'?'completed':''}">${s.date_code}: ${s.title} [${s.status}] <button onclick="completeSub(${t.id},${si})">✅</button></div>`).join('') || '';
         return `<div class="task"><h3>${t.task} (${t.project})</h3>
                 <p>Status: ${t.status}</p>
                 <p>${t.description}</p>
@@ -163,16 +172,19 @@
       }).join('');
     }
 
-    if(page==="daily") {
+    if(page === "daily") {
       const dailyDiv = pages.daily;
       dailyDiv.innerHTML="<h2>📅 Daily Tasks</h2>";
       const tasks = await db.tasks.toArray();
       const todayNum = parseInt(new Date().toISOString().slice(5,7)+new Date().toISOString().slice(8,10));
-      tasks.forEach(t => t.subtasks?.forEach((s, si) => {
-        if(parseInt(s.date_code)<=todayNum && s.status!=="Completed") {
-          dailyDiv.innerHTML += `<p>${t.task} - ${s.title} <button onclick="completeSub(${t.id},${si})">✅ Complete</button></p>`;
-        }
-      }));
+      tasks.forEach(t => {
+        t.subtasks?.forEach((s, si) => {
+          const subNum = parseInt(s.date_code);
+          if(subNum<=todayNum && s.status!=="Completed") {
+            dailyDiv.innerHTML += `<p>${t.task} - ${s.title} <button onclick="completeSub(${t.id},${si})">✅ Complete</button></p>`;
+          }
+        });
+      });
     }
 
     if(page==="projects") {
@@ -180,11 +192,11 @@
       projDiv.innerHTML="<h2>📂 Project Overview</h2>";
       const tasks = await db.tasks.toArray();
       const projects = {};
-      tasks.forEach(t => { (projects[t.project]=projects[t.project]||[]).push(t); });
-      for(const [proj, tlist] of Object.entries(projects)){
+      tasks.forEach(t => { projects[t.project] = projects[t.project]||[]; projects[t.project].push(t); });
+      for(const [proj, tlist] of Object.entries(projects)) {
         projDiv.innerHTML += `<h3>${proj}</h3>`;
-        tlist.forEach(t=>{
-          const subHTML = t.subtasks?.map(s=>`<p class="${s.status==='Completed'?'completed':''}">${s.date_code}: ${s.title} [${s.status}]</p>`).join('')||'_No subtasks_';
+        tlist.forEach(t => {
+          let subHTML = t.subtasks?.map(s=>`<p class="${s.status==='Completed'?'completed':''}">${s.date_code}: ${s.title} [${s.status}]</p>`).join('')||'_No subtasks_';
           projDiv.innerHTML += `<div class="task"><strong>${t.task}</strong>${subHTML}</div>`;
         });
       }
@@ -201,20 +213,10 @@
   };
 
   // ================= Service Worker =================
-  if('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js').then(reg => {
-      // Force new SW activation immediately
-      if(reg.waiting) reg.waiting.postMessage({type:'SKIP_WAITING'});
-      reg.addEventListener('updatefound', () => {
-        const newSW = reg.installing;
-        newSW.addEventListener('statechange', () => {
-          if(newSW.state==='installed') navigator.serviceWorker.controller?.postMessage({type:'SKIP_WAITING'});
-        });
-      });
-    });
-  }
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
 
   // ================= Initial Render =================
+  let currentPage = "dashboard";
   navigate(currentPage);
 </script>
 </body>
