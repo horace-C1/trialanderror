@@ -47,7 +47,7 @@
 </head>
 <body>
 
-<h1>📊 Protocol Tracker</h1>
+<h1>📊 Protocol Tracker1106</h1>
 
 <!-- Pages -->
 <div id="dashboardPage" class="page"></div>
@@ -66,6 +66,24 @@
 </div>
 
 <script>
+
+  // ================= Force new SW =================
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').then(reg => {
+      reg.update(); // check for new SW
+      reg.onupdatefound = () => {
+        const newWorker = reg.installing;
+        newWorker.onstatechange = () => {
+          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            // New update available
+            newWorker.postMessage({ type: 'SKIP_WAITING' });
+            window.location.reload(); // reload to apply changes
+          }
+        };
+      };
+    });
+  }
+
   // ================= Dexie DB Setup =================
   const db = new Dexie("protocolTrackerDB");
   db.version(1).stores({
@@ -221,5 +239,6 @@
 </script>
 </body>
 </html>
+
 
 
