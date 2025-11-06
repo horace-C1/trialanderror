@@ -1,47 +1,29 @@
-// ================= Service Worker =================
-const CACHE_NAME = 'protocol-tracker-cache-v3'; // increment this when you update files
+const CACHE_NAME = 'protocol-tracker-cache-v2'; // increment on update
 const FILES_TO_CACHE = [
   '/',
   '/index.html',
   '/manifest.json',
-  // add any other files you use, e.g., icons
-  // '/icon-192.png',
-  // '/icon-512.png'
+  // icons etc
 ];
 
-// Install: cache files
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(FILES_TO_CACHE);
-    }).then(() => self.skipWaiting())
+// Install
+self.addEventListener('install', (e) => {
+  e.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(FILES_TO_CACHE)).then(()=>self.skipWaiting()));
+});
+
+// Activate
+self.addEventListener('activate', (e) => {
+  e.waitUntil(
+    caches.keys().then(keys => Promise.all(keys.filter(k=>k!==CACHE_NAME).map(k=>caches.delete(k)))).then(()=>self.clients.claim())
   );
 });
 
-// Activate: remove old caches
-self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(
-        keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
-      )
-    ).then(() => self.clients.claim())
-  );
+// Fetch
+self.addEventListener('fetch', (e) => {
+  e.respondWith(caches.match(e.request).then(c => c||fetch(e.request)));
 });
 
-// Fetch: serve cached files first, fallback to network
-self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    caches.match(event.request).then((cached) => {
-      return cached || fetch(event.request);
-    })
-  );
+// Message
+self.addEventListener('message', e => {
+  if(e.data?.type==='SKIP_WAITING') self.skipWaiting();
 });
-
-// Optional: Force update when new service worker is available
-self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting();
-  }
-});
-
