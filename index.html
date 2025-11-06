@@ -47,7 +47,7 @@
 </head>
 <body>
 
-<h1>📊 Protocol Tracker 1145</h1>
+<h1>📊 Protocol Tracker</h1>
 
 <!-- Pages -->
 <div id="dashboardPage" class="page"></div>
@@ -174,18 +174,49 @@
 
     if(page === "daily") {
       const dailyDiv = pages.daily;
-      dailyDiv.innerHTML="<h2>📅 Daily Tasks</h2>";
-      const tasks = await db.tasks.toArray();
-      const todayNum = parseInt(new Date().toISOString().slice(5,7)+new Date().toISOString().slice(8,10));
-      tasks.forEach(t => {
-        t.subtasks?.forEach((s, si) => {
-          const subNum = parseInt(s.date_code);
-          if(subNum<=todayNum && s.status!=="Completed") {
-            dailyDiv.innerHTML += `<p>${t.task} - ${s.title} <button onclick="completeSub(${t.id},${si})">✅ Complete</button></p>`;
-          }
+        dailyDiv.innerHTML = "<h2>📅 Daily Tasks</h2>";
+        const tasks = await db.tasks.toArray();
+        const todayNum = parseInt(new Date().toISOString().slice(5,7) + new Date().toISOString().slice(8,10));
+
+        let anyVisible = false;
+
+        tasks.forEach(t => {
+          t.subtasks?.forEach((s, si) => {
+            const subNum = parseInt(s.date_code);
+            const status = s.status;
+
+            // Show if due today or overdue AND not completed before today
+            if(subNum <= todayNum && !(status === "Completed" && subNum < todayNum)) {
+              anyVisible = true;
+              const taskDiv = document.createElement("div");
+              taskDiv.className = "subtask-container";
+
+              let subHTML = `${subNum}: ${s.title} [${status}]`;
+              const subElem = document.createElement("p");
+              subElem.innerHTML = subHTML;
+              if(status === "Completed") subElem.classList.add("completed");
+              else if(subNum < todayNum) subElem.classList.add("overdue");
+
+              taskDiv.appendChild(subElem);
+
+              if(status !== "Completed") {
+                const btn = document.createElement("button");
+                btn.innerText = "✅";
+                btn.onclick = async () => {
+                  s.status = "Completed";
+                  await db.tasks.put(t);
+                  navigate("daily"); // rerender daily page
+                };
+                taskDiv.appendChild(btn);
+              }
+
+              dailyDiv.appendChild(taskDiv);
+            }
+          });
         });
-      });
-    }
+
+        if(!anyVisible) dailyDiv.innerHTML += "<p>No subtasks due today or earlier.</p>";
+      }
 
     if(page==="projects") {
       const projDiv = pages.projects;
