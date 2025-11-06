@@ -59,9 +59,9 @@
 <!-- Bottom Navigation -->
 <div id="bottom-nav">
   <button id="nav-dashboard" onclick="navigate('dashboard')">🏠</button>
+  <button id="nav-daily" onclick="navigate('daily')">📅</button>
   <button id="nav-create" onclick="navigate('create')">➕</button>
   <button id="nav-tasks" onclick="navigate('tasks')">📋</button>
-  <button id="nav-daily" onclick="navigate('daily')">📅</button>
   <button id="nav-projects" onclick="navigate('projects')">📂</button>
 </div>
 
@@ -215,8 +215,8 @@
           });
         });
 
-        if(!anyVisible) dailyDiv.innerHTML += "<p>No subtasks due today or earlier.</p>";
-      }
+      if(!anyVisible) dailyDiv.innerHTML += "<p>No subtasks due today or earlier.</p>";
+    }
 
     if(page==="projects") {
       const projDiv = pages.projects;
