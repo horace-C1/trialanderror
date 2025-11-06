@@ -47,7 +47,7 @@
 </head>
 <body>
 
-<h1>📊 Protocol Tracker PWA-1106</h1>
+<h1>📊 Protocol Tracker</h1>
 
 <!-- Pages -->
 <div id="dashboardPage" class="page"></div>
@@ -109,7 +109,7 @@
   async function renderPage(page) {
     if (page === "dashboard") {
       const dash = pages.dashboard;
-      dash.innerHTML = "<h2>📊 Dashboard1106</h2>";
+      dash.innerHTML = "<h2>📊 Dashboard</h2>";
       const tasks = await db.tasks.toArray();
       const totalProjects = new Set(tasks.map(t => t.project)).size;
       const totalTasks = tasks.length;
@@ -221,4 +221,5 @@
 </script>
 </body>
 </html>
+
 
