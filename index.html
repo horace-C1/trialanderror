@@ -172,55 +172,59 @@
       }).join('');
     }
 
-    if(page === "daily") {
+    if (page === "daily") {
       const dailyDiv = pages.daily;
       dailyDiv.innerHTML = "<h2>📅 Daily Tasks</h2>";
+
       const tasks = await db.tasks.toArray();
-      const todayNum = parseInt(new Date().toISOString().slice(5,7) + new Date().toISOString().slice(8,10));
+      const todayNum = parseInt(
+        new Date().toISOString().slice(5, 7) + new Date().toISOString().slice(8, 10)
+      );
 
       let anyVisible = false;
 
-      tasks.forEach(t => {
-        const visibleSubs = t.subtasks?.filter(s => {
-          const subNum = parseInt(s.date_code);
-          const status = s.status;
-          return subNum <= todayNum && !(status === "Completed" && subNum < todayNum);
-        }) || [];
+      tasks.forEach((t) => {
+        const visibleSubs =
+          t.subtasks?.filter((s) => {
+            const subNum = parseInt(s.date_code);
+            const status = s.status;
+            return subNum <= todayNum && !(status === "Completed" && subNum < todayNum);
+          }) || [];
 
-        if(visibleSubs.length > 0) {
+        if (visibleSubs.length > 0) {
           anyVisible = true;
 
           const taskContainer = document.createElement("div");
           taskContainer.className = "task";
 
-          // Header with title and Edit button
+          // === Header: title + edit button ===
           const header = document.createElement("div");
           header.style.display = "flex";
           header.style.justifyContent = "space-between";
           header.style.alignItems = "center";
 
           const title = document.createElement("h3");
-          title.innerText = `🔹 ${t.task}, ${t.project}`;
+          title.innerText = `🔹 ${t.task} (${t.project})`;
           header.appendChild(title);
 
           const editBtn = document.createElement("button");
-          editBtn.innerText = "✏️ Edit";
+          editBtn.innerHTML = "✏️ Edit";
+          editBtn.style.fontSize = "1rem";
+          editBtn.style.width = "70px";
+          editBtn.style.height = "32px";
+          editBtn.style.padding = "0";
+          editBtn.style.borderRadius = "8px";
+          editBtn.style.cursor = "pointer";
+          editBtn.style.background = "#eee";
+          editBtn.style.border = "1px solid #ccc";
+          editBtn.style.transition = "0.2s";
+
+          editBtn.onmouseover = () => (editBtn.style.background = "#ddd");
+          editBtn.onmouseout = () => (editBtn.style.background = "#eee");
+
           header.appendChild(editBtn);
           taskContainer.appendChild(header);
 
-          // make it smaller (or larger)
-          editBtn.style.fontSize = "1rem";   // smaller text
-          editBtn.style.width = "64px";
-          editBtn.style.height = "32px";
-          editBtn.style.padding = "0";  
-          editBtn.style.borderRadius = "8px";  // round corners
-          editBtn.style.cursor = "pointer";    // pointer cursor on hover
-          editBtn.style.background = "#eee";   // optional: background color
-          editBtn.style.border = "1px solid #ccc";
-          editBtn.style.transition = "0.2s";   // smooth hover
-
-          editBtn.onmouseover = () => editBtn.style.background = "#ddd";
-          editBtn.onmouseout  = () => editBtn.style.background = "#eee";  
 
           // Editable description (without subtasks)
           let editing = false;
@@ -250,42 +254,66 @@
             }
           };
 
-          // Render only visible subtasks separately (not inside description)
-          visibleSubs.forEach((s, si) => {
+
+          // === Render visible subtasks ===
+          visibleSubs.forEach((s) => {
             const subNum = parseInt(s.date_code);
             const status = s.status;
 
-            const subDiv = document.createElement("div");
-            subDiv.className = "subtask-container";
+            const subRow = document.createElement("div");
+            subRow.style.display = "flex";
+            subRow.style.justifyContent = "space-between";
+            subRow.style.alignItems = "center";
+            subRow.style.margin = "4px 0";
 
+            // Subtask text
             const subElem = document.createElement("p");
-            subElem.innerText = `${subNum}: ${s.title} [${status}]`;
-            if(status === "Completed") subElem.classList.add("completed");
-            else if(subNum < todayNum) subElem.classList.add("overdue");
-            subDiv.appendChild(subElem);
+            subElem.innerText = `${subNum}: ${s.title}`;
+            subElem.style.margin = "0";
+            subElem.style.flex = "1";
+            if (status === "Completed") subElem.classList.add("completed");
+            else if (subNum < todayNum) subElem.classList.add("overdue");
 
-            if(status !== "Completed") {
+            subRow.appendChild(subElem);
+
+            // Complete button (if not done)
+            if (status !== "Completed") {
               const btn = document.createElement("button");
-              btn.innerText = "✅";
+              btn.innerHTML = "✅";
+              btn.style.fontSize = "1rem";
+              btn.style.width = "32px";
+              btn.style.height = "32px";
+              btn.style.padding = "0";
+              btn.style.borderRadius = "8px";
+              btn.style.cursor = "pointer";
+              btn.style.background = "#eee";
+              btn.style.border = "1px solid #ccc";
+              btn.style.transition = "0.2s";
+              btn.style.marginLeft = "8px";
+
+              btn.onmouseover = () => (btn.style.background = "#ddd");
+              btn.onmouseout  = () => (btn.style.background = "#eee");
+
               btn.onclick = async () => {
                 s.status = "Completed";
                 await db.tasks.put(t);
-                navigate("daily"); // rerender daily page
+                navigate("daily");
               };
-              subDiv.appendChild(btn);
+
+              subRow.appendChild(btn);
+            
             }
 
-            taskContainer.appendChild(subDiv);
+            taskContainer.appendChild(subRow);
           });
 
           dailyDiv.appendChild(taskContainer);
         }
       });
 
-      if(!anyVisible) dailyDiv.innerHTML += "<p>No subtasks due today or earlier.</p>";
+      if (!anyVisible)
+        dailyDiv.innerHTML += "<p>No subtasks due today or earlier.</p>";
     }
-
-
 
 
     if(page==="projects") {
