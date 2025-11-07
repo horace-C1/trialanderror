@@ -181,7 +181,6 @@
       let anyVisible = false;
 
       tasks.forEach(t => {
-        // Filter visible subtasks
         const visibleSubs = t.subtasks?.filter(s => {
           const subNum = parseInt(s.date_code);
           const status = s.status;
@@ -191,12 +190,67 @@
         if(visibleSubs.length > 0) {
           anyVisible = true;
 
-          // Show parent task and project
-          const header = document.createElement("h3");
-          header.innerText = `🔹 ${t.task}, ${t.project}`;
-          dailyDiv.appendChild(header);
+          const taskContainer = document.createElement("div");
+          taskContainer.className = "task";
 
-          // Render each subtask under the parent
+          // Header with title and Edit button
+          const header = document.createElement("div");
+          header.style.display = "flex";
+          header.style.justifyContent = "space-between";
+          header.style.alignItems = "center";
+
+          const title = document.createElement("h3");
+          title.innerText = `🔹 ${t.task}, ${t.project}`;
+          header.appendChild(title);
+
+          const editBtn = document.createElement("button");
+          editBtn.innerText = "✏️ Edit";
+          header.appendChild(editBtn);
+          taskContainer.appendChild(header);
+
+          // make it smaller (or larger)
+          editBtn.style.fontSize = "1rem";   // smaller text
+          editBtn.style.width = "64px";
+          editBtn.style.height = "32px";
+          editBtn.style.padding = "0";  
+          editBtn.style.borderRadius = "8px";  // round corners
+          editBtn.style.cursor = "pointer";    // pointer cursor on hover
+          editBtn.style.background = "#eee";   // optional: background color
+          editBtn.style.border = "1px solid #ccc";
+          editBtn.style.transition = "0.2s";   // smooth hover
+
+          editBtn.onmouseover = () => editBtn.style.background = "#ddd";
+          editBtn.onmouseout  = () => editBtn.style.background = "#eee";  
+
+          // Editable description (without subtasks)
+          let editing = false;
+          let descElem = null; //
+
+          editBtn.onclick = () => {
+            if(!editing) {
+              editing = true;
+              const textarea = document.createElement("textarea");
+              textarea.value = t.description; // only description text
+              textarea.style.width = "100%";
+              textarea.style.marginTop = "5px";
+
+              const saveBtn = document.createElement("button");
+              saveBtn.innerText = "💾 Save";
+              saveBtn.style.marginTop = "5px";
+
+              saveBtn.onclick = async () => {
+                t.description = textarea.value;       // update parent description
+                t.subtasks = extractSubtasks(textarea.value); // regenerate subtasks if you want
+                await db.tasks.put(t);
+                navigate("daily"); // rerender daily page
+              };
+
+              taskContainer.appendChild(textarea);
+              taskContainer.appendChild(saveBtn);
+            }
+          };
+
+          // Render only visible subtasks separately (not inside description)
           visibleSubs.forEach((s, si) => {
             const subNum = parseInt(s.date_code);
             const status = s.status;
@@ -221,13 +275,17 @@
               subDiv.appendChild(btn);
             }
 
-            dailyDiv.appendChild(subDiv);
+            taskContainer.appendChild(subDiv);
           });
+
+          dailyDiv.appendChild(taskContainer);
         }
       });
 
       if(!anyVisible) dailyDiv.innerHTML += "<p>No subtasks due today or earlier.</p>";
     }
+
+
 
 
     if(page==="projects") {
