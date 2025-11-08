@@ -150,7 +150,7 @@
         const status = document.getElementById("statusInput").value;
         if(!project || !task) { document.getElementById("msg").innerText="Fill project & task!"; return; }
         const subtasks = extractSubtasks(description);
-        await db.tasks.add({ project, task, description, status, subtasks, created_at: new Date().toISOString() });
+        await db.tasks.add({ project, task, description, status, subtasks, created_at: new Date().toLocaleString("en-US", { timeZone: "America/Chicago" }) });
         document.getElementById("msg").innerText = "✅ Task Saved!";
         document.getElementById("projInput").value="";
         document.getElementById("taskInput").value="";
@@ -177,9 +177,13 @@
       dailyDiv.innerHTML = "<h2>📅 Daily Tasks</h2>";
 
       const tasks = await db.tasks.toArray();
-      const todayNum = parseInt(
-        new Date().toISOString().slice(5, 7) + new Date().toISOString().slice(8, 10)
-      );
+      // --- Use Chicago local date (America/Chicago timezone) ---
+      const chicagoNow = new Date().toLocaleString("en-US", { timeZone: "America/Chicago" });
+      const chicagoDate = new Date(chicagoNow);
+      const month = String(chicagoDate.getMonth() + 1).padStart(2, "0");
+      const day = String(chicagoDate.getDate()).padStart(2, "0");
+      const todayNum = parseInt(month + day);
+
 
       let anyVisible = false;
 
