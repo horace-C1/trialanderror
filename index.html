@@ -357,6 +357,8 @@
 
                 t.description = textarea.value;       // update parent description
                 t.subtasks = extractSubtasks(textarea.value); // regenerate subtasks if you want
+                t.order = order;             
+
                 await db.tasks.put(t);
                 navigate("daily"); // rerender daily page
               };
