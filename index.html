@@ -84,8 +84,20 @@
 <script type="module">
   // ================= Dexie DB Setup =================
   const db = new Dexie("protocolTrackerDB");
+  db.version(1).stores({
+    tasks: "++id, project, task, description, status, created_at"
+  });
+
   db.version(2).stores({
     tasks: "++id, project, task, description, status, created_at, order"
+  }).upgrade(async (trans) => {
+    const allTasks = await trans.table('tasks').toArray();
+    for (let i = 0; i < allTasks.length; i++) {
+      if (allTasks[i].order === undefined) {
+        allTasks[i].order = i; // assign a default order to existing tasks
+        await trans.table('tasks').put(allTasks[i]);
+      }
+    }
   });
 
   const pages = {
