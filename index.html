@@ -158,6 +158,17 @@
     }
   }
 
+  //normalize order
+  async function normalizeTaskOrder() {
+    const tasks = await db.tasks.toArray();
+    for (let i = 0; i < tasks.length; i++) {
+      if (tasks[i].order === undefined) {
+        tasks[i].order = i;
+        await db.tasks.put(tasks[i]);
+      }
+    }
+  }
+
 
   // ================= Navigation =================
   function navigate(page) {
