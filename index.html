@@ -353,13 +353,17 @@
 
               saveBtn.onclick = async () => {
                 // Preserve the order
-                const order = t.order;
+                //const order = t.order;
 
-                t.description = textarea.value;       // update parent description
-                t.subtasks = extractSubtasks(textarea.value); // regenerate subtasks if you want
-                t.order = order;             
+                //t.description = textarea.value;       // update parent description
+                //t.subtasks = extractSubtasks(textarea.value); // regenerate subtasks if you want
+                //t.order = order;             
 
-                await db.tasks.put(t);
+                //await db.tasks.put(t);
+                const latestTask = await db.tasks.get(t.id);
+                latestTask.description = textarea.value;
+                latestTask.subtasks = extractSubtasks(textarea.value);
+                await db.tasks.put(latestTask);
                 navigate("daily"); // rerender daily page
               };
 
