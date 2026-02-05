@@ -56,6 +56,8 @@
 <div id="dailyPage" class="page"></div>
 <div id="projectsPage" class="page"></div>
 
+
+
 <!-- Bottom Navigation -->
 <div id="bottom-nav">
   <button id="nav-dashboard" onclick="navigate('dashboard')">🏠</button>
@@ -68,8 +70,8 @@
 <script>
   // ================= Dexie DB Setup =================
   const db = new Dexie("protocolTrackerDB");
-  db.version(1).stores({
-    tasks: "++id, project, task, description, status, created_at"
+  db.version(2).stores({
+    tasks: "++id, project, task, description, status, created_at, order"
   });
 
   const pages = {
@@ -79,6 +81,56 @@
     daily: document.getElementById("dailyPage"),
     projects: document.getElementById("projectsPage")
   };
+
+  await normalizeTaskOrder();
+  navigate("daily");
+
+  // ================= Drag & Drop Helpers =================
+  let draggedTask = null;
+
+  function handleDragStart(e) {
+    draggedTask = this;
+    this.classList.add("dragging");
+    e.dataTransfer.effectAllowed = "move";
+  }
+
+  function handleDragOver(e) {
+    e.preventDefault(); // REQUIRED so drop works
+    return false;
+  }
+
+  function handleDrop(e) {
+    e.stopPropagation();
+
+    if (draggedTask !== this) {
+      const parent = this.parentNode;
+      const draggedIndex = [...parent.children].indexOf(draggedTask);
+      const targetIndex  = [...parent.children].indexOf(this);
+
+      if (draggedIndex < targetIndex) {
+        parent.insertBefore(draggedTask, this.nextSibling);
+      } else {
+        parent.insertBefore(draggedTask, this);
+      }
+
+      saveTaskOrder(parent);
+    }
+  }
+
+  // ================= SAVE ORDER (Step B) =================
+  async function saveTaskOrder(container) {
+    const taskDivs = [...container.children];
+
+    for (let i = 0; i < taskDivs.length; i++) {
+      const id = Number(taskDivs[i].dataset.taskId);
+      const task = await db.tasks.get(id);
+      if (!task) continue;
+
+      task.order = i;
+      await db.tasks.put(task);
+    }
+  }
+
 
   // ================= Navigation =================
   function navigate(page) {
@@ -150,7 +202,9 @@
         const status = document.getElementById("statusInput").value;
         if(!project || !task) { document.getElementById("msg").innerText="Fill project & task!"; return; }
         const subtasks = extractSubtasks(description);
-        await db.tasks.add({ project, task, description, status, subtasks, created_at: new Date().toLocaleString("en-US", { timeZone: "America/Chicago" }) });
+
+        const count = await db.tasks.count();
+        await db.tasks.add({ project, task, description, status, subtasks, order: count, created_at: new Date().toLocaleString("en-US", { timeZone: "America/Chicago" }) });
         document.getElementById("msg").innerText = "✅ Task Saved!";
         document.getElementById("projInput").value="";
         document.getElementById("taskInput").value="";
@@ -176,7 +230,7 @@
       const dailyDiv = pages.daily;
       dailyDiv.innerHTML = "<h2>📅 Daily Tasks</h2>";
 
-      const tasks = await db.tasks.toArray();
+      const tasks = await db.tasks.orderBy("order").toArray();
       // --- Use Chicago local date (America/Chicago timezone) ---
       const chicagoNow = new Date().toLocaleString("en-US", { timeZone: "America/Chicago" });
       const chicagoDate = new Date(chicagoNow);
@@ -200,6 +254,15 @@
 
           const taskContainer = document.createElement("div");
           taskContainer.className = "task";
+          taskContainer.draggable = true;
+          taskContainer.dataset.taskId = t.id;   // Dexie primary key
+          taskContainer.addEventListener("dragstart", handleDragStart);
+          taskContainer.addEventListener("dragover", handleDragOver);
+          taskContainer.addEventListener("drop", handleDrop);
+          taskContainer.addEventListener("dragend", () => {
+            taskContainer.classList.remove("dragging");
+          });
+
 
           // === Header: title + edit button ===
           const header = document.createElement("div");
