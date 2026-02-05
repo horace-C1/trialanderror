@@ -1,5 +1,5 @@
 // Change this version number whenever you update files
-const CACHE_VERSION = 'v18'; // Change from 'v1' to 'v2', etc.
+const CACHE_VERSION = 'v19'; // Change from 'v1' to 'v2', etc.
 const CACHE_NAME = `my-app-${CACHE_VERSION}`;
 
 // Install event - cache your files

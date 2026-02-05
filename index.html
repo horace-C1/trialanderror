@@ -352,6 +352,9 @@
               saveBtn.style.marginTop = "5px";
 
               saveBtn.onclick = async () => {
+                // Preserve the order
+                const order = t.order;
+
                 t.description = textarea.value;       // update parent description
                 t.subtasks = extractSubtasks(textarea.value); // regenerate subtasks if you want
                 await db.tasks.put(t);
