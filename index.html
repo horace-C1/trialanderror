@@ -16,6 +16,20 @@
     .completed { color: gray; text-decoration: line-through; }
     .overdue { color: red; }
 
+    .task {
+  border: 1px solid #ddd;
+  padding: 10px;
+  margin-bottom: 10px;
+  border-radius: 6px;
+  cursor: grab; /* default: hand cursor */
+}
+
+.task.dragging {
+  opacity: 0.7;      /* optional: make it semi-transparent while dragging */
+  cursor: grabbing;   /* shows hand "grabbing" */
+}
+
+
     /* Bottom navigation */
     #bottom-nav {
       position: fixed;
@@ -90,6 +104,9 @@
     draggedTask = this;
     this.classList.add("dragging");
     e.dataTransfer.effectAllowed = "move";
+    
+    // optional: make a small offset drag preview
+    e.dataTransfer.setDragImage(this, 10, 10);
   }
 
   function handleDragOver(e) {
@@ -133,6 +150,7 @@
   // ================= Navigation =================
   function navigate(page) {
     // hide all pages
+    currentPage = page;  // <-- update current page
     Object.values(pages).forEach(p => p.style.display = 'none');
     // show selected page
     pages[page].style.display = 'block';
@@ -142,9 +160,8 @@
     // render page content
     renderPage(page);
   }
+  window.navigate = navigate;
 
-  await normalizeTaskOrder();
-  navigate("daily");
 
 
   // ================= Helper: Extract subtasks =================
@@ -414,8 +431,12 @@
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
 
   // ================= Initial Render =================
+  //let currentPage = "dashboard";
+  //navigate(currentPage);
   let currentPage = "dashboard";
+  await normalizeTaskOrder();
   navigate(currentPage);
+
 </script>
 </body>
 </html>
