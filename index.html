@@ -67,7 +67,7 @@
   <button id="nav-projects" onclick="navigate('projects')">📂</button>
 </div>
 
-<script>
+<script type="module">
   // ================= Dexie DB Setup =================
   const db = new Dexie("protocolTrackerDB");
   db.version(2).stores({
@@ -82,11 +82,6 @@
     projects: document.getElementById("projectsPage")
   };
 
-
-(async () => {
-  await normalizeTaskOrder();
-  navigate("daily");
-})();
 
   // ================= Drag & Drop Helpers =================
   let draggedTask = null;
@@ -147,6 +142,10 @@
     // render page content
     renderPage(page);
   }
+
+  await normalizeTaskOrder();
+  navigate("daily");
+
 
   // ================= Helper: Extract subtasks =================
   function extractSubtasks(description) {
