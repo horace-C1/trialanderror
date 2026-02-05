@@ -82,8 +82,11 @@
     projects: document.getElementById("projectsPage")
   };
 
+
+(async () => {
   await normalizeTaskOrder();
   navigate("daily");
+})();
 
   // ================= Drag & Drop Helpers =================
   let draggedTask = null;
