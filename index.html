@@ -199,6 +199,18 @@
     return subtasks;
   }
 
+  //Change order
+  async function persistDailyOrder() {
+    const tasks = document.querySelectorAll("#dailyPage .task");
+
+    for (let i = 0; i < tasks.length; i++) {
+      const taskId = Number(tasks[i].dataset.taskId);
+      await db.tasks.update(taskId, { order: i });
+    }
+
+    renderPage("daily");
+  }
+
   // ================= Pages =================
   async function renderPage(page) {
     if (page === "dashboard") {
@@ -301,8 +313,9 @@
           taskContainer.addEventListener("dragstart", handleDragStart);
           taskContainer.addEventListener("dragover", handleDragOver);
           taskContainer.addEventListener("drop", handleDrop);
-          taskContainer.addEventListener("dragend", () => {
+          taskContainer.addEventListener("dragend", async () => {
             taskContainer.classList.remove("dragging");
+            await persistDailyOrder();
           });
 
 
@@ -315,6 +328,15 @@
           const title = document.createElement("h3");
           title.innerText = `🔹 ${t.task} (${t.project})`;
           header.appendChild(title);
+
+          const orderLabel = document.createElement("span");
+          orderLabel.innerText = `Order: ${t.order}`;
+          orderLabel.style.fontSize = "0.8rem";
+          orderLabel.style.color = "#888";
+          orderLabel.style.marginLeft = "8px";
+
+          header.appendChild(orderLabel);
+
 
           const editBtn = document.createElement("button");
           editBtn.innerHTML = "✏️ Edit";
