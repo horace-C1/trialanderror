@@ -284,7 +284,7 @@
       const dailyDiv = pages.daily;
       dailyDiv.innerHTML = "<h2>📅 Daily Tasks</h2>";
 
-      const tasks = await db.tasks.orderBy("order").toArray();
+      const tasks = await db.tasks.orderBy("order").reverse().toArray();
       // --- Use Chicago local date (America/Chicago timezone) ---
       const chicagoNow = new Date().toLocaleString("en-US", { timeZone: "America/Chicago" });
       const chicagoDate = new Date(chicagoNow);
@@ -330,7 +330,7 @@
           header.appendChild(title);
 
           const orderLabel = document.createElement("span");
-          orderLabel.innerText = `Order: ${t.order}`;
+          //orderLabel.innerText = `Order: ${t.order}`;
           orderLabel.style.fontSize = "0.8rem";
           orderLabel.style.color = "#888";
           orderLabel.style.marginLeft = "8px";
